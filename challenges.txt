@@ -1,0 +1,7 @@
+1. -> EDIT WORKOUT                                                                (DONE)
+2. -> DELETE WORKOUT                                                              (DONE)
+3. -> DELETE ALL WORKOUTS                                                         (DONE)
+4. -> SORT WORKOUTS BY A CERTAIN FIELD (eg. distance)
+5. -> RE-BUILD RUNNING AND CYCLING OBJECTS COMING FROM LOCAL STORAGE
+6. -> MORE REALISTIC ERROR AND CONFIRMATION MESSAGES.
+7. -> POSITION THE MAP TO SHOW ALL WORKOUTS (optional) 
