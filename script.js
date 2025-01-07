@@ -30,6 +30,7 @@ class Workout {
 
   click() {
     this.clicks++;
+    console.log('Workout clicked!!');
   }
 }
 
@@ -99,9 +100,7 @@ class App {
     if (navigator.geolocation)
       navigator.geolocation.getCurrentPosition(
         this._loadMap.bind(this),
-        function () {
-          alert('Could not get your position');
-        }
+        this._showMessage.bind(this, 'error', 'position')
       );
   }
 
@@ -207,7 +206,7 @@ class App {
         !validInputs(distance, duration, cadence) ||
         !checkPositive(distance, duration, cadence)
       )
-        return alert('Inputs have to be positive numbers!');
+        return this._showMessage('error', 'input');
 
       if (!editWorkout)
         workout = new Running([lat, lng], distance, duration, cadence);
@@ -229,7 +228,7 @@ class App {
         !validInputs(distance, duration, elevation) ||
         !checkPositive(distance, duration)
       )
-        return alert('Inputs have to be positive numbers!');
+        return this._showMessage('error', 'input');
 
       if (!editWorkout)
         workout = new Cycling([lat, lng], distance, duration, elevation);
@@ -285,8 +284,10 @@ class App {
       // Render workout on list
       this._renderWorkout(workout);
     } else {
+      this._sortByDate();
       // Render workout on list
       this._renderAllWorkouts();
+      this._showMessage('alert', 'edit');
     }
 
     // Hide form + clear input fields
@@ -343,37 +344,45 @@ class App {
           <li class="edit__workout"><p>Edit workout</p></li>
           <li class="delete__workout"><p>Delete workout</p></li>
           <li class="delete__workout__all"><p>Delete all workouts</p></li>
-        </ul>
-      </div>`;
+          <li class="sort__distance" data-field="distance"><p>Sort by distance</p></li>
+          <li class="sort__duration" data-field="duration"><p>Sort by duration</p></li>`;
 
     if (workout.type === 'running') {
       workoutHTML += `
-        <div class="workout__details">
-          <span class="workout__icon">⚡️</span>
-          <span class="workout__value">${workout.pace.toFixed(1)}</span>
-          <span class="workout__unit">min/km</span>
-        </div>
-        <div class="workout__details">
-          <span class="workout__icon">🦶🏼</span>
-          <span class="workout__value">${workout.cadence}</span>
-          <span class="workout__unit">spm</span>
-        </div>
-      </li>`;
+          <li class="sort__pace" data-field="pace"><p>Sort by pace</p></li>
+          <li class="sort__cadence" data-field="cadence"><p>Sort by cadence</p></li>
+        </ul>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">⚡️</span>
+        <span class="workout__value">${workout.pace.toFixed(1)}</span>
+        <span class="workout__unit">min/km</span>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">🦶🏼</span>
+        <span class="workout__value">${workout.cadence}</span>
+        <span class="workout__unit">spm</span>
+      </div>
+    </li>`;
     }
 
     if (workout.type === 'cycling') {
       workoutHTML += `
-        <div class="workout__details">
-          <span class="workout__icon">⚡️</span>
-          <span class="workout__value">${workout.speed.toFixed(1)}</span>
-          <span class="workout__unit">km/h</span>
-        </div>
-        <div class="workout__details">
-          <span class="workout__icon">⛰</span>
-          <span class="workout__value">${workout.elevationGain}</span>
-          <span class="workout__unit">m</span>
-        </div>
-      </li>`;
+          <li class="sort__speed" data-field="speed"><p>Sort by speed</p></li>
+          <li class="sort__elevation" data-field="elevation"><p>Sort by elevation gain</p></li>
+        </ul>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">⚡️</span>
+        <span class="workout__value">${workout.speed.toFixed(1)}</span>
+        <span class="workout__unit">km/h</span>
+      </div>
+      <div class="workout__details">
+        <span class="workout__icon">⛰</span>
+        <span class="workout__value">${workout.elevationGain}</span>
+        <span class="workout__unit">m</span>
+      </div>
+    </li>`;
     }
 
     form.insertAdjacentHTML('afterend', workoutHTML);
@@ -382,8 +391,6 @@ class App {
   _renderAllWorkouts() {
     //Init container
     this._deleteAllWorkoutElements();
-
-    this.#workouts.sort((a, b) => a.date - b.date);
 
     this.#workouts.forEach(workout => {
       this._renderWorkout(workout);
@@ -417,7 +424,8 @@ class App {
       });
     }
     // using the public interface
-    // workout.click();
+    workout.click();
+    console.log(workout);
   }
 
   _deleteAllWorkoutElements() {
@@ -457,6 +465,15 @@ class App {
     this._setLocalStorage();
   }
 
+  _sortByDate() {
+    this.#workouts.sort((a, b) => a.date - b.date);
+  }
+
+  _sortByField(field) {
+    this.#workouts.sort((a, b) => a[field] - b[field]);
+    this._renderAllWorkouts();
+  }
+
   _moveToEdit(e, workout) {
     const workoutMenu = e.target.nextElementSibling;
 
@@ -477,6 +494,14 @@ class App {
     if (e.target.closest('.delete__workout__all')) {
       this._deleteAllWorkouts(e);
     }
+
+    if (e.target.closest('[data-field]')) {
+      //prettier-ignore
+      const field = Array.from(e.target.closest('[data-field]').classList)[0].slice(6);
+      console.log(field);
+      this._sortByField(field);
+      this._setLocalStorage();
+    }
   }
 
   _setLocalStorage() {
@@ -487,11 +512,39 @@ class App {
     const data = JSON.parse(localStorage.getItem('workouts'));
 
     if (!data) return;
+    console.log(data[0]);
 
-    this.#workouts = data;
+    this.#workouts = data.map(d => {
+      if (d.type === 'running') {
+        return new Running(d.coords, d.distance, d.duration, d.cadence);
+      }
+
+      if (d.type === 'cycling')
+        return new Cycling(d.coords, d.distance, d.duration, d.cadence);
+    });
+    console.log(this.#workouts);
 
     this.#workouts.forEach(workout => {
       this._renderWorkout(workout);
+    });
+  }
+
+  _showMessage(type, message) {
+    const element = document.querySelector(`.${type}__${message}`);
+    console.log(element);
+    element.parentElement.classList.add('message__show', `message__${type}`);
+    element.classList.remove('message__hidden');
+    setTimeout(() => {
+      element.parentElement.classList.remove(
+        'message__show',
+        `message__${type}`
+      );
+    }, 3000);
+    element.parentElement.addEventListener('click', function () {
+      element.parentElement.classList.remove(
+        'message__show',
+        `message__${type}`
+      );
     });
   }
 
