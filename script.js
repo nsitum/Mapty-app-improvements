@@ -7,6 +7,7 @@ const inputDistance = document.querySelector('.form__input--distance');
 const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
+const showAllWorkouts = document.querySelector('.show__workouts');
 
 class Workout {
   date = new Date();
@@ -30,7 +31,6 @@ class Workout {
 
   click() {
     this.clicks++;
-    console.log('Workout clicked!!');
   }
 }
 
@@ -94,6 +94,7 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
     containerWorkouts.addEventListener('click', this._moveToWorkout.bind(this));
+    showAllWorkouts.addEventListener('click', this._showAllWorkouts.bind(this));
   }
 
   _getPosition() {
@@ -124,6 +125,16 @@ class App {
     this.#workouts.forEach(workout => {
       this._renderWorkoutMarker(workout);
     });
+  }
+
+  _showAllWorkouts() {
+    if (this.#workouts.length === 0) {
+      this._showMessage('alert', 'empty');
+      return;
+    }
+    const locations = this.#workouts.map(workout => workout.coords);
+    const bounds = L.latLngBounds(locations);
+    this.#map.fitBounds(bounds);
   }
 
   _showForm(mapE) {
@@ -296,6 +307,9 @@ class App {
     // Set local storage to all workouts
     this._setLocalStorage();
 
+    // Show message
+    this._showMessage('create', 'workout');
+
     form.classList.remove('form--edit');
   }
 
@@ -425,7 +439,6 @@ class App {
     }
     // using the public interface
     workout.click();
-    console.log(workout);
   }
 
   _deleteAllWorkoutElements() {
@@ -444,11 +457,36 @@ class App {
     });
   }
 
+  _askPermissionToDelete(deleteAll, workoutEl, workout) {
+    //prettier-ignore
+    const confirmationModal = document.querySelector('.confirmation__modal')
+    console.log(confirmationModal);
+    confirmationModal.classList.add('confirmation__show');
+    confirmationModal.addEventListener(
+      'click',
+      function (e) {
+        e.preventDefault();
+        if (e.target.closest('.confirmation__btn__ok') && !deleteAll) {
+          this._deleteWorkout(workoutEl, workout);
+          confirmationModal.classList.remove('confirmation__show');
+        }
+        if (e.target.closest('.confirmation__btn__cancel')) {
+          confirmationModal.classList.remove('confirmation__show');
+        }
+        if (e.target.closest('.confirmation__btn__ok') && deleteAll) {
+          this._deleteAllWorkouts();
+          confirmationModal.classList.remove('confirmation__show');
+        }
+      }.bind(this)
+    );
+  }
+
   _deleteWorkout(workoutEl, workout) {
     this._deleteMarker(workout);
     this.#workouts.splice(this.#workouts.indexOf(workout), 1);
     workoutEl.remove();
     this._setLocalStorage();
+    this._showMessage('alert', 'delete');
   }
 
   _deleteAllMarkers() {
@@ -457,12 +495,13 @@ class App {
     });
   }
 
-  _deleteAllWorkouts(e) {
+  _deleteAllWorkouts() {
     this.#workouts = [];
     this._deleteAllMarkers();
     this.#markers = [];
     this._deleteAllWorkoutElements();
     this._setLocalStorage();
+    this._showMessage('alert', 'delete--all');
   }
 
   _sortByDate() {
@@ -472,6 +511,7 @@ class App {
   _sortByField(field) {
     this.#workouts.sort((a, b) => a[field] - b[field]);
     this._renderAllWorkouts();
+    this._showMessage('alert', `${field}`);
   }
 
   _moveToEdit(e, workout) {
@@ -488,17 +528,16 @@ class App {
 
     if (e.target.closest('.delete__workout')) {
       const deleteWorkoutEl = e.target.closest('.workout');
-      this._deleteWorkout(deleteWorkoutEl, workout);
+      this._askPermissionToDelete(false, deleteWorkoutEl, workout);
     }
 
     if (e.target.closest('.delete__workout__all')) {
-      this._deleteAllWorkouts(e);
+      this._askPermissionToDelete(true);
     }
 
     if (e.target.closest('[data-field]')) {
       //prettier-ignore
       const field = Array.from(e.target.closest('[data-field]').classList)[0].slice(6);
-      console.log(field);
       this._sortByField(field);
       this._setLocalStorage();
     }
@@ -512,7 +551,6 @@ class App {
     const data = JSON.parse(localStorage.getItem('workouts'));
 
     if (!data) return;
-    console.log(data[0]);
 
     this.#workouts = data.map(d => {
       if (d.type === 'running') {
@@ -520,9 +558,8 @@ class App {
       }
 
       if (d.type === 'cycling')
-        return new Cycling(d.coords, d.distance, d.duration, d.cadence);
+        return new Cycling(d.coords, d.distance, d.duration, d.elevationGain);
     });
-    console.log(this.#workouts);
 
     this.#workouts.forEach(workout => {
       this._renderWorkout(workout);
@@ -532,19 +569,24 @@ class App {
   _showMessage(type, message) {
     const element = document.querySelector(`.${type}__${message}`);
     console.log(element);
-    element.parentElement.classList.add('message__show', `message__${type}`);
-    element.classList.remove('message__hidden');
-    setTimeout(() => {
-      element.parentElement.classList.remove(
-        'message__show',
-        `message__${type}`
-      );
-    }, 3000);
+    console.log(element.parentElement.classList.contains('message__show'));
+    if (!element.parentElement.classList.contains('message__show')) {
+      element.parentElement.classList.add('message__show', `message__${type}`);
+      element.classList.remove('message__hidden');
+      setTimeout(() => {
+        element.parentElement.classList.remove(
+          'message__show',
+          `message__${type}`
+        );
+        element.classList.add('message__hidden');
+      }, 3000);
+    }
     element.parentElement.addEventListener('click', function () {
       element.parentElement.classList.remove(
         'message__show',
         `message__${type}`
       );
+      element.classList.add('message__hidden');
     });
   }
 

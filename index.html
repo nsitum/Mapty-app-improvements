@@ -139,11 +139,13 @@
       <p class="alert__edit message__hidden">Workout edited!</p>
       <p class="alert__delete message__hidden">Workout deleted!</p>
       <p class="alert__delete--all message__hidden">All workouts deleted!</p>
-      <p class="sort__distance message__hidden">Workouts sorted by distance</p>
-      <p class="sort__duration message__hidden">Workouts sorted by duration</p>
-      <p class="sort__pace message__hidden">Workouts sorted by pace</p>
-      <p class="sort__cadence message__hidden">Workouts sorted by cadence</p>
-      <p class="create__workout message__hidden">Workouts sorted by cadence</p>
+      <!-- prettier-ignore -->
+      <p class="alert__empty message__hidden">There are no workouts. Create some!</p>
+      <p class="alert__distance message__hidden">Workouts sorted by distance</p>
+      <p class="alert__duration message__hidden">Workouts sorted by duration</p>
+      <p class="alert__pace message__hidden">Workouts sorted by pace</p>
+      <p class="alert__cadence message__hidden">Workouts sorted by cadence</p>
+      <p class="create__workout message__hidden">Workout created!</p>
     </div>
     <div class="confirmation__modal">
       <p class="confirmation__text">Are you sure you want to delete?</p>
@@ -154,6 +156,10 @@
           Cancel
         </button>
       </div>
+    </div>
+
+    <div class="show__workouts--container">
+      <button class="show__workouts">Show all workouts</button>
     </div>
     <div id="map"></div>
   </body>
