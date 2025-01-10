@@ -1,0 +1,1 @@
+Mapty is an interactive workout tracking application that leverages the power of modern JavaScript and the Map API. Designed as part of Jonas Schmedtmann's "Complete JavaScript Course," this project provides hands-on experience with geolocation, third-party APIs, and local storage.
